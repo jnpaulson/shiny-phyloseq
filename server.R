@@ -1,6 +1,8 @@
 ################################################################################
 # Options, default settings, and load packages
 ################################################################################
+# Animation options
+source("animation-parameters.R", local=FALSE)
 # By default, the file size limit is 5MB. It can be changed by
 # setting this option. Here we'll raise limit to 9MB.
 options(shiny.maxRequestSize = 100*1024^2)
@@ -287,23 +289,6 @@ shinyServer(function(input, output){
     selectInput(inputId=id, label=label, choices=choices, selected=selected)
   }
   ################################################################################
-  # plot_ordination() ui
-  ################################################################################
-  output$ord_uix_color <- renderUI({uivar("color_ord", "Color Variable:", vars())})
-  output$ord_uix_shape <- renderUI({uivar("shape_ord", "Shape Variable:", vars())})
-  ################################################################################
-  # plot_richness() ui
-  ################################################################################
-  output$richness_uix_x <- renderUI({
-    uivar("x_alpha", "Horizontal (x) Variable:", sampvarlist())
-  })
-  output$richness_uix_color <- renderUI({
-    uivar("color_alpha", "Color Variable:", sampvarlist())
-  })
-  output$richness_uix_shape <- renderUI({
-    uivar("shape_alpha", "Shape Variable:", sampvarlist())
-  })
-  ################################################################################
   # plot_network() ui
   ################################################################################
   output$network_uix_color <- renderUI({
@@ -311,73 +296,6 @@ shinyServer(function(input, output){
   })
   output$network_uix_shape <- renderUI({
     uivar("shape_net", "Shape Variable:", vars())
-  })
-  ################################################################################
-  # plot_bar() uix
-  ################################################################################
-  output$bar_uix_xvar <- renderUI({
-    selectInput(inputId="x_bar", 
-                label="Horizontal ('x') Variable:", 
-                choices=c(list("Sample"="Sample"), rankNames(), variNames()))
-  })
-  output$bar_uix_colvar <- renderUI({
-    uivar("color_bar", "Color Fill Variable:", vars())
-  })
-  ################################################################################
-  # plot_tree() ui
-  ################################################################################
-  output$tree_uix_color <- renderUI({
-    uivar("color_tree", "Color Variable:", vars())
-  })
-  output$tree_uix_shape <- renderUI({
-    uivar("shape_tree", "Shape Variable:", vars())
-  })
-  output$tree_uix_tiplabs <- renderUI({
-    uivar("label_tip_tree", "Tip Labels", choices=c(OTU="OTU", specvarlist()))
-  })
-  output$tree_uix_point_thresh <- renderUI({
-    sliderInput("abundance_threshold_tree",
-                "Count Minimum Threshold for Points",
-                value=0.1*median(as(otu_table(physeq()), "matrix"), na.rm=TRUE),
-                max=max(as(otu_table(physeq()), "matrix"), na.rm=TRUE),
-                min=min(as(otu_table(physeq()), "matrix"), na.rm=TRUE)
-    )
-  })
-  ################################################################################
-  # plot_heatmap() ui
-  ################################################################################
-  output$heat_sample_label <- renderUI({
-    uivar("sample.label", "Sample Labels:", sampvarlist())
-  })
-  output$heat_taxa_label <- renderUI({
-    uivar("taxa.label", "Taxa Labels:", specvarlist())
-  })
-  output$heat_sample_order <- renderUI({
-    uivar("sample.order", "Sample Ordering:", sampvarlist())
-  })
-  output$heat_taxa_order <- renderUI({
-    uivar("taxa.order", "Taxa Ordering:", specvarlist())
-  })
-  ################################################################################
-  # scatterplot ui
-  ################################################################################
-  scatvars = reactive({
-    return(c(OTU="OTU", Sample="Sample", Abundance="Abundance",
-             rankNames(), variNames()))
-  })
-  output$scat_uix_x <- renderUI({
-    selectInput(inputId="x_scat", label="Horizontal ('x') Variable:", 
-                choices=scatvars(), selected="Sample")
-  })
-  output$scat_uix_y <- renderUI({
-    selectInput(inputId="y_scat", label="Vertical ('y') Variable:", 
-                         choices=scatvars(), selected="Abundance")
-  })
-  output$scat_uix_color <- renderUI({
-    uivar("color_scat", "Color Variable:", vars())
-  })
-  output$scat_uix_shape <- renderUI({
-    uivar("shape_scat", "Shape Variable:", vars())
   })
   ################################################################################
   # Plot Rendering Stuff.
@@ -421,168 +339,6 @@ shinyServer(function(input, output){
     return(x)
   }
   ################################################################################
-  # Ordination section
-  ################################################################################
-  get_formula <- reactive({
-    if(is.null(av(input$formula)) | input$formula=="NULL"){
-      return(NULL)
-    } else {
-      return(as.formula(input$formula))
-    }
-  })
-  #observe({print(paste0("formula argument: ", get_formula()))})
-  # Define global reactive distance matrix. Will re-calc if method or plot-type change.
-  gdist <- reactive({
-    if(input$dist_ord %in% distance("list")$vegdist){
-      return(input$dist_ord)
-    } else {
-      idist = NULL
-      try({idist <- distance(physeq(), method=input$dist_ord, type=input$type_ord)}, silent=TRUE)
-      if(is.null(idist)){warning("gdist: Could not calculate distance matrix with these settings.")}
-      return(idist)
-    }
-  })
-  # Define reactive ordination access
-  get_ord = reactive({
-    ordinate(physeq(), method=input$ord_method, distance=gdist(), formula=get_formula())
-  })
-  make_ord_plot = reactive({
-    p1 = NULL
-    try(p1 <- plot_ordination(physeq(), get_ord(), type=input$ord_plot_type), silent=TRUE)
-    return(p1)
-  })
-  # ordination plot definition
-  output$ordination <- renderPlot({
-    p1 = make_ord_plot()
-    if(inherits(p1, "ggplot")){
-      p1$layers[[1]]$geom_params$size <- av(input$size_ord)
-      p1$layers[[1]]$geom_params$alpha <- av(input$alpha_ord)
-      if(!is.null(av(input$color_ord))){
-        p1$mapping$colour <- as.symbol(av(input$color_ord))
-      }
-      if(!is.null(av(input$shape_ord))){
-        p1$mapping$shape  <- as.symbol(av(input$shape_ord))
-      }
-    }
-    shiny_phyloseq_print(p1)
-  }, width=700, height=700)    
-  ################################################################################
-  # bar plot definition
-  ################################################################################
-  physeq_bar = reactive({
-    return(switch({input$uicttype_bar}, Counts=physeq(), Proportions=physeqProp()))
-  })
-  get_facet <- reactive({
-    if(is.null(input$facform_bar) | input$facform_bar=="NULL"){
-      return(NULL)
-    } else {
-      return(as.formula(input$facform_bar))
-    }
-  })
-  make_bar_plot = reactive({
-    psb = physeq_bar()
-    p0 = NULL
-    try(p0 <- plot_bar(psb, x=input$x_bar, y="Abundance", fill=av(input$color_bar), 
-                       facet_grid=get_facet()),
-        silent=TRUE)
-    if(!inherits(p0, "ggplot")){
-      warning("Could not render bar plot, attempting without faceting...")
-      try(p0 <- plot_bar(psb, x=xvar, y="Abundance", fill=av(input$color_bar)),
-          silent=TRUE)
-    }
-    return(p0)
-  })
-  output$bar <- renderPlot({
-    shiny_phyloseq_print(make_bar_plot())
-  }, width=700, height=400)
-  ################################################################################
-  # phylogenetic tree plot definition
-  ################################################################################
-  filter_phyloseq = reactive({
-    filterPhyseq = physeq()
-    observe({print(paste0("tree obs min threshold: ", input$abundance_threshold_tree))})
-    observe({print(paste0("Class of tree obs min threshold: ", class(input$abundance_threshold_tree)))})
-    otu_table(filterPhyseq)[otu_table(filterPhyseq) < input$abundance_threshold_tree] <- 0
-    return(filterPhyseq)
-  })
-  make_tree = reactive({     
-    p2 = NULL
-    try(p2 <- plot_tree(filter_phyloseq(), input$method_tree,
-                        justify=input$justify_tree,
-                        nodelabf=nodeplotblank, 
-                        ladderize=av(input$ladderize_tree),
-                        label.tips=av(input$label_tip_tree),
-                        color=av(input$color_tree), shape=av(input$shape_tree), 
-                        text.size=av(input$size_tree),
-                        plot.margin=input$margin_tree),
-        silent=TRUE)
-    if(input$plot_tree_radial=="radial"){
-      p2 <- p2 + coord_polar(theta="y")
-    }
-    return(p2)
-  })
-  output$tree <- renderPlot({
-    if(ntaxa(physeq()) <= 500 & !is.null(phy_tree(physeq(), errorIfNULL=FALSE))){
-      p2 = make_tree()
-    } else if(!is.null(phy_tree(physeq(), errorIfNULL=FALSE))){
-      # Notify user that there are too many taxa for a tree graphic
-      p2 = fail_gen("Too Many OTUs For a Tree Graphic",
-                    "Please Filter or Merge OTUs, and Try Again")
-    } else {
-      # Remind user that tree is missing from data
-      p2 = fail_gen("No Tree in Input Data",
-                    "Cannot Make Tree Graphic without Tree")        
-    }
-    shiny_phyloseq_print(p2)
-  }, width=700, height=700)
-  ################################################################################
-  # heatmap plot definition
-  ################################################################################
-  physeq_heat = reactive({
-    return(switch(input$uicttype_heat, Counts=physeq(), Proportions=physeqProp()))
-  })
-  make_heatmap = reactive({
-    p3 = NULL
-    try(p3 <- plot_heatmap(physeq_heat(), method=input$ord_method_heat, distance=input$dist_heat,
-                           sample.label=av(input$sample.label),
-                           taxa.label=av(input$taxa.label),
-                           sample.order=av(input$sample.order),
-                           taxa.order=av(input$taxa.order),
-                           low = input$locolor_heat,
-                           high = input$hicolor_heat,
-                           na.value = input$NAcolor_heat),
-        silent=TRUE)
-    return(p3)
-  })
-  output$heatmap <- renderPlot({
-    shiny_phyloseq_print(make_heatmap())
-  }, width=700, height=700)
-  ################################################################################
-  # Alpha Diversity plot definition
-  ################################################################################
-  make_richness_plot = reactive({
-    p4 = NULL
-    try(p4 <- plot_richness(physeq(), x=av(input$x_alpha),
-                            color=av(input$color_alpha),
-                            shape=av(input$shape_alpha),
-                            measures=input$measures_alpha),
-        silent=TRUE)
-    return(p4)
-  })
-  output$richness <- renderPlot({
-    p4 = make_richness_plot()
-    if(inherits(p4, "ggplot")){
-      # Adjust size/alpha of points, but not error bars
-      p4$layers[[1]]$geom_params$size <- input$size_alpha
-      p4$layers[[1]]$geom_params$alpha <- input$alpha_alpha
-      shiny_phyloseq_print(p4)
-    } else {
-      # If for any reason p4 is not a ggplot at this point,
-      # render fail-plot rather than tinker with innards.
-      print(failp)
-    }
-  }, width=700, height=500)
-  ################################################################################
   # Generate a network plot 
   ################################################################################
   # The reactive value version of the network.
@@ -596,17 +352,13 @@ shinyServer(function(input, output){
     idist <- idist - min(idist, na.rm=TRUE)
     return(idist)
   })
-  ## Changes only if input$uinetdistmax changes, or the reactive distance matrix, gdist()
-  #observe({print(paste0("Network Max Distance (input$uinetdistmax): ", input$uinetdistmax))})
-  #observe({print(paste0("Network Min Distance (input$uinetdispdist): ", input$uinetdispdist))})
   ig <- reactive({
     make_network(physeq(),
                  type=input$type_net,
                  distance=distonly(),
-                 max.dist=input$uinetdistmax,
+                 max.dist=netdist,
                  keep.isolates=FALSE)
   })
-  #print(paste0("Class of ig(): ", class(isolate(ig()))))
   initial_plot_network = reactive({
     plot_network(ig(), physeq(),
                  type=input$type_net,
@@ -635,7 +387,7 @@ shinyServer(function(input, output){
     # Define the edge data frame
     edgeDF0 = get_edge_df()
     # Subset newEdgeDF according to max allowed distance
-    newEdgeDF = edgeDF0[edgeDF0$dist <= input$uinetdispdist, ]
+    newEdgeDF = edgeDF0[edgeDF0$dist <= input$dispdist, ]
     newEdgeMap = aes_string(x="x", y="y", group="id", colour=input$color_net)
     newEdgeLayer = geom_line(mapping=newEdgeMap, data=newEdgeDF, alpha=input$alpha_net)
     p$layers[[whichEdge]] <- newEdgeLayer
@@ -661,40 +413,8 @@ shinyServer(function(input, output){
   })
   output$network <- renderPlot({
     shiny_phyloseq_print(update_plot_network())
-  }, width=700, height=700)
-  ################################################################################
-  # Flexible Scatter plot
-  ################################################################################
-  physeq_scat = reactive({
-    return(switch(input$uicttype_scat, Counts=physeq(), Proportions=physeqProp()))
+  }, width=700, height=500)
+  output$textdist <- renderText({
+    paste("Edge Distance Threshold: ", input$dispdist)
   })
-  make_scatter_plot = reactive({
-    pscat = NULL
-    try({
-      scatmap = aes_string(x=av(input$x_scat), y=av(input$y_scat),
-                           color=av(input$color_scat), shape=av(input$shape_scat))
-      scatdf = psmelt(physeq_scat())
-      pscat = ggplot(data=scatdf, mapping=scatmap) + geom_point()
-      pscat = pscat + theme(axis.text.x=element_text(angle=-90, vjust=0.5, hjust=0)) 
-      if(!is.null(av(input$facform_scat))){
-        # Add facet_grid layer if user-provided one
-        # # Need to add a user-toggle for free_x and free_y panels.
-        pscat <- pscat + facet_grid(facets=as.formula(av(input$facform_scat)))
-      }
-    }, silent=TRUE)
-    return(pscat)
-  })
-  output$scatter <- renderPlot({
-    pscat = make_scatter_plot()
-    if(inherits(pscat, "ggplot")){
-      # Adjust size/alpha of points, but not error bars
-      pscat$layers[[1]]$geom_params$size <- input$size_scat
-      pscat$layers[[1]]$geom_params$alpha <- input$alpha_scat
-      shiny_phyloseq_print(pscat)
-    } else {
-      # If for any reason pscat is not a ggplot at this point,
-      # render fail-plot rather than tinker with innards.
-      print(failp)
-    }
-  }, width=700, height=700)
 })

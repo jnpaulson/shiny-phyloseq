@@ -32,17 +32,19 @@ uicttype = function(id="uicttype"){
 ################################################################################
 # sbp of plot_network
 ################################################################################
-sbp_net = sidebarPanel(uitype("type_net", "samples"),
-                       uidist("dist_net"),
-                       uiOutput("network_uix_color"),
-                       uiOutput("network_uix_shape"),
-                       sliderInput("dispdist", "Edge Distance Threshold:",
-                                   animate=animationOptions(interval=interval, loop=loop),
-                                   min=0.0,
-                                   max=netdist,
-                                   value=0.5*netdist,
-                                   step=step),
-                       uiptsz("size_net"), uialpha("alpha_net")
+sbp_net = sidebarPanel(
+  sliderInput("dispdist", "Edge Distance Threshold Animation:",
+              animate=animationOptions(interval=interval, loop=loop),
+              min=0.0,
+              max=netdist,
+              value=0.5*netdist,
+              step=step),
+  p("See animation-parameters.R to change default settings."),
+  uitype("type_net", "samples"),
+  uidist("dist_net"),
+  uiOutput("network_uix_color"),
+  uiOutput("network_uix_shape"),
+  uiptsz("size_net"), uialpha("alpha_net")
 )
 ################################################################################
 # Define each fluid page

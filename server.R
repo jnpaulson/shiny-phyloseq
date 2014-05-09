@@ -28,16 +28,15 @@ datalist = list(GlobalPatterns=GlobalPatterns,
                 enterotype=enterotype,
                 esophagus=esophagus,
                 soilrep=soilrep)
-
-filepath = system.file("extdata", "study_1457_split_library_seqs_and_mapping.zip", package="phyloseq")
-kostic = microbio_me_qiime(filepath)
-if(inherits(kostic, "phyloseq")){
-  datalist <- c(list(study_1457_Kostic=kostic), datalist)
-}
-filepath <- system.file("extdata", "study_816_split_library_seqs_and_mapping.tar.gz", package="phyloseq")
-study_816 = microbio_me_qiime(filepath)
-if(inherits(study_816, "phyloseq")){
-  datalist <- c(list(study_816=study_816), datalist)
+# The mouse study data:
+load("data/phytcf.RData")
+# One-Off fix infected variable
+sample_data(phytcf)$mouse.type <- factor(get_variable(phytcf, "mouse.type"))
+sample_data(phytcf)$infected <- as.logical(get_variable(phytcf, "infected"))
+sample_data(phytcf)$mouse.number <- factor(get_variable(phytcf, "mouse.number"))
+# Add phytcf as 'mouse' in the available data list.
+if(inherits(phytcf, "phyloseq")){
+  datalist <- c(list(mouse=phytcf), datalist)
 }
 ################################################################################
 # Begin Shiny Server definition.
@@ -292,10 +291,24 @@ shinyServer(function(input, output){
   # plot_network() ui
   ################################################################################
   output$network_uix_color <- renderUI({
-    uivar("color_net", "Color Variable:", vars())
+    if(input$type_net=="samples"){
+      return(uivar("color_net", "Color Variable:", sampvarlist()))
+    } else if(input$type_net=="taxa"){
+      return(uivar("color_net", "Color Variable:", specvarlist()))
+    } else {
+      # Some kind of fail, throw all variables up.
+      return(uivar("color_net", "Color Variable:", vars()))
+    }
   })
   output$network_uix_shape <- renderUI({
-    uivar("shape_net", "Shape Variable:", vars())
+    if(input$type_net=="samples"){
+      return(uivar("shape_net", "Shape Variable:", sampvarlist()))
+    } else if(input$type_net=="taxa"){
+      return(uivar("shape_net", "Shape Variable:", specvarlist()))
+    } else {
+      # Some kind of fail, throw all variables up.
+      return(uivar("shape_net", "Shape Variable:", vars()))
+    }
   })
   ################################################################################
   # Plot Rendering Stuff.
@@ -415,6 +428,6 @@ shinyServer(function(input, output){
     shiny_phyloseq_print(update_plot_network())
   }, width=700, height=500)
   output$textdist <- renderText({
-    paste("Edge Distance Threshold: ", input$dispdist)
+    paste("Edge Distance Threshold: ", round(input$dispdist, digits=3))
   })
 })

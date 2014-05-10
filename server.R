@@ -311,6 +311,72 @@ shinyServer(function(input, output){
     }
   })
   ################################################################################
+  # ordination uix
+  ################################################################################
+  output$ord_uix_color <- renderUI({
+    if(input$type_ord=="samples"){
+      return(uivar("color_ord", "Color Variable:", sampvarlist()))
+    } else if(input$type_ord=="taxa"){
+      return(uivar("color_ord", "Color Variable:", specvarlist()))
+    } else {
+      # Some kind of fail, throw all variables up.
+      return(uivar("color_ord", "Color Variable:", vars()))
+    }
+  })
+  output$ord_uix_shape <- renderUI({
+    if(input$type_ord=="samples"){
+      return(uivar("shape_ord", "Shape Variable:", sampvarlist()))
+    } else if(input$type_ord=="taxa"){
+      return(uivar("shape_ord", "Shape Variable:", specvarlist()))
+    } else {
+      # Some kind of fail, throw all variables up.
+      return(uivar("shape_ord", "Shape Variable:", vars()))
+    }
+  })  
+  # Dynamic filtering...
+  output$ord_uix_subsetvar <- renderUI({
+    if(input$type_ord=="samples"){
+      return(uivar("subsetvar_ord", "Subset Variable:", sampvarlist()))
+    } else if(input$type_ord=="taxa"){
+      return(uivar("subsetvar_ord", "Subset Variable:", specvarlist()))
+    } else {
+      # Some kind of fail, throw all variables up.
+      return(uivar("subsetvar_ord", "Subset Variable:", vars()))
+    }
+  })
+  output$ord_uix_selectelem <- renderUI({
+    observe({print(paste0("ord_uix_selectelem input$subsetvar_ord: ", input$subsetvar_ord))})
+    if(is.null(av(input$subsetvar_ord))){
+      return(selectInput("elem_select", "Subset by Elements", 
+                  choices="NULL", selected="NULL", multiple=TRUE))
+    }
+    if(input$type_ord=="samples"){
+      choices = unique(get_variable(physeq(), input$subsetvar_ord))
+      return(
+        selectInput("elem_select", "Subset by Elements", 
+                    choices=choices, selected=choices, multiple=TRUE)
+      )
+    } else if(input$type_ord=="taxa"){
+      choices = get_taxa_unique(physeq(), input$subsetvar_ord)
+      return(
+        selectInput("elem_select", "Subset by Elements",
+                    choices=choices, selected=choices, multiple=TRUE)
+      )
+    }
+  })
+  physeq_ord = reactive({
+    if(is.null(av(input$subsetvar_ord))){
+      return(physeq())
+    }
+    if(input$type_ord=="samples"){
+      keepSamples = get_variable(physeq(), input$subsetvar_ord) %in% input$elem_select
+      return(prune_samples(keepSamples, physeq()))
+    } else if(input$type_ord=="taxa"){
+      keepTaxa = as(tax_table(physeq()), "matrix")[, input$subsetvar_ord] %in% input$elem_select
+      return(prune_taxa(keepTaxa, physeq()))
+    }
+  })
+  ################################################################################
   # Plot Rendering Stuff.
   ################################################################################
   # Define a proportions-only version of input phyloseq object
@@ -422,12 +488,58 @@ shinyServer(function(input, output){
     # Fix the coordinate ranges based on the original.
     p = p + xlim(I(range(edgeDF0$x, na.rm=TRUE, finite=TRUE)))
     p = p + ylim(I(range(edgeDF0$y, na.rm=TRUE, finite=TRUE)))
+    p = p + ggtitle(paste("Edge Distance Threshold: ", round(input$dispdist, digits=3)))
     return(p)
   })
   output$network <- renderPlot({
     shiny_phyloseq_print(update_plot_network())
   }, width=700, height=500)
-  output$textdist <- renderText({
-    paste("Edge Distance Threshold: ", round(input$dispdist, digits=3))
+  ################################################################################
+  # Ordination section
+  ################################################################################
+  get_formula <- reactive({
+    if(is.null(av(input$formula)) | input$formula=="NULL"){
+      return(NULL)
+    } else {
+      return(as.formula(input$formula))
+    }
   })
+  # Define global reactive distance matrix. Will re-calc if method or plot-type change.
+  gdist <- reactive({
+    if(input$dist_ord %in% distance("list")$vegdist){
+      return(input$dist_ord)
+    } else {
+      idist = NULL
+      try({idist <- distance(physeq_ord(), method=input$dist_ord, type=input$type_ord)}, silent=TRUE)
+      if(is.null(idist)){warning("gdist: Could not calculate distance matrix with these settings.")}
+      return(idist)
+    }
+  })
+  # Define reactive ordination access
+  get_ord = reactive({
+    ordinate(physeq_ord(), method=input$ord_method, distance=gdist(), formula=get_formula())
+  })
+  make_ord_plot = reactive({
+    p1 = NULL
+    try(p1 <- plot_ordination(physeq_ord(), get_ord(), type=input$type_ord), silent=TRUE)
+    return(p1)
+  })
+  # ordination plot definition
+  output$ordination <- renderPlot({
+    p1 = make_ord_plot()
+    if(inherits(p1, "ggplot")){
+      p1$layers[[1]]$geom_params$size <- av(input$size_ord)
+      p1$layers[[1]]$geom_params$alpha <- av(input$alpha_ord)
+      if(!is.null(av(input$color_ord))){
+        p1$mapping$colour <- as.symbol(av(input$color_ord))
+      }
+      if(!is.null(av(input$shape_ord))){
+        p1$mapping$shape  <- as.symbol(av(input$shape_ord))
+      }
+    }
+    # Updates legend labels.
+    p1 = update_labels(p1, list(colour=input$color_ord))
+    p1 = update_labels(p1, list(shape=input$shape_ord))
+    shiny_phyloseq_print(p1)
+  }, width=800, height=650)
 })

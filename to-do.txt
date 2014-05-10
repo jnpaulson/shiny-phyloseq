@@ -1,0 +1,8 @@
+* Differences between networks
+
+* Computing the coompromise network 
+ - looking at the added and substracting edges from it,
+
+* The Jaccard comparison of networks
+
+* UIX with a network plot to fix it (e.g. expand hairballs, etc..)

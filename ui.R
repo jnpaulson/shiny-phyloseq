@@ -29,6 +29,11 @@ uicttype = function(id="uicttype"){
                choices=c("Counts", "Proportions"),
                selected="Counts")
 } 
+# Define the ordination options list.
+ordlist = as.list(phyloseq::ordinate("list"))
+names(ordlist) <- ordlist
+ordlist = ordlist[-which(ordlist %in% c("MDS", "PCoA"))]
+ordlist = c(list("MDS/PCoA"="MDS"), ordlist)
 ################################################################################
 # sbp of plot_network
 ################################################################################
@@ -47,6 +52,19 @@ sbp_net = sidebarPanel(
   uiptsz("size_net"), uialpha("alpha_net")
 )
 ################################################################################
+# sbp of plot_ordination 
+################################################################################
+sbp_ord = sidebarPanel(uitype("type_ord", "samples"),
+                       uiOutput("ord_uix_subsetvar"),
+                       uiOutput("ord_uix_selectelem"),
+                       uidist("dist_ord"),
+                       uiOutput("ord_uix_color"),
+                       uiOutput("ord_uix_shape"),
+                       selectInput("ord_method", "Ordination Method:", ordlist, selected="DCA"),
+                       textInput("formula", "Ordination Constraint Formula", value="NULL"),
+                       uiptsz("size_ord"), uialpha("alpha_ord")
+)
+################################################################################
 # Define each fluid page
 ################################################################################
 # Define in a single function, a standard definition
@@ -56,14 +74,13 @@ make_fluidpage = function(fptitle="", sbp, outplotid){
     sidebarLayout(
       sidebarPanel=sbp,
       mainPanel=mainPanel(
-        textOutput("textdist"),
-        tags$hr(),
         plotOutput(outplotid)
       )
     )
   )
 }
 netpage = make_fluidpage("", sbp_net, "network")
+ordpage = make_fluidpage("", sbp_ord, "ordination")
 # Data I/O page
 datapage = fluidPage(
   titlePanel(""),
@@ -136,6 +153,7 @@ filterpage = fluidPage(
 ui = navbarPage("Shiny + phyloseq",
                 tabPanel("Select Dataset", datapage),
                 tabPanel("Filter", filterpage),
-                tabPanel("Network", netpage)
+                tabPanel("Network", netpage),
+                tabPanel("Ordination", ordpage)
 )
 shinyUI(ui)

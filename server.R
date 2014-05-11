@@ -315,7 +315,7 @@ shinyServer(function(input, output){
   ################################################################################
   output$ord_uix_color <- renderUI({
     if(input$type_ord=="samples"){
-      return(uivar("color_ord", "Color Variable:", sampvarlist()))
+      return(uivar("color_ord", "Color Variable:", sampvarlist(), ordinationColorVariableDefault))
     } else if(input$type_ord=="taxa"){
       return(uivar("color_ord", "Color Variable:", specvarlist()))
     } else {
@@ -325,7 +325,7 @@ shinyServer(function(input, output){
   })
   output$ord_uix_shape <- renderUI({
     if(input$type_ord=="samples"){
-      return(uivar("shape_ord", "Shape Variable:", sampvarlist()))
+      return(uivar("shape_ord", "Shape Variable:", sampvarlist(), ordinationShapeVariableDefault))
     } else if(input$type_ord=="taxa"){
       return(uivar("shape_ord", "Shape Variable:", specvarlist()))
     } else {
@@ -333,7 +333,37 @@ shinyServer(function(input, output){
       return(uivar("shape_ord", "Shape Variable:", vars()))
     }
   })  
-  # Dynamic filtering...
+  # Time variable for ordination animation
+  output$ord_uix_timevar <- renderUI({
+    if(input$type_ord=="samples"){
+      return(uivar("timevar_ord", "Time Variable:", sampvarlist(), ordinationTimeVariableDefault))
+    } else if(input$type_ord=="taxa"){
+      return(uivar("timevar_ord", "Time Variable:", specvarlist()))
+    } else {
+      # Some kind of fail... dummy ui
+      return(selectInput("timevar_ord", "Time Variable", choices = "NULL"))
+    }
+  })
+  get_timevar_ord = reactive({
+    if(input$type_ord=="taxa" | is.null(av(input$timevar_ord))){
+      return(NULL)
+    }
+    return(as.numeric(get_variable(physeq_ord(), input$timevar_ord)))
+  })
+  output$ord_uix_timeslider <- renderUI({
+    observe({print(paste0(get_timevar_ord(), collapse=", "))})
+    if(is.null(av(input$timevar_ord)) | is.null(get_timevar_ord())){
+      return(selectInput("timeslider_ord", "Time Variable", choices = "NULL"))
+    }
+    timerange = range(get_timevar_ord())
+    return(sliderInput("timeslider_ord", label = paste0("Animate: ", input$timevar_ord),
+                       min=timerange[1], 
+                       max=timerange[2],
+                       value=timerange[1],
+                       animate=animationOptions(interval=interval, loop=loop))
+    )
+  })
+  # Dynamic filtering for ordination
   output$ord_uix_subsetvar <- renderUI({
     if(input$type_ord=="samples"){
       return(uivar("subsetvar_ord", "Subset Variable:", sampvarlist()))
@@ -528,18 +558,37 @@ shinyServer(function(input, output){
   output$ordination <- renderPlot({
     p1 = make_ord_plot()
     if(inherits(p1, "ggplot")){
+      # define the full xlim, ylim
+      xlim0 = range(p1$data[[as.character(p1$mapping$x)]])
+      ylim0 = range(p1$data[[as.character(p1$mapping$y)]])
+      # Reactive size and opacity.
       p1$layers[[1]]$geom_params$size <- av(input$size_ord)
       p1$layers[[1]]$geom_params$alpha <- av(input$alpha_ord)
+      # Reactive color and shape
       if(!is.null(av(input$color_ord))){
         p1$mapping$colour <- as.symbol(av(input$color_ord))
       }
       if(!is.null(av(input$shape_ord))){
         p1$mapping$shape  <- as.symbol(av(input$shape_ord))
       }
+      # facetting 
+      if(!is.null(c(av(input$color_ord), av(input$shape_ord)))){
+        facetForm = as.formula(paste0("~", paste0(c(av(input$color_ord), av(input$shape_ord)), collapse = " + ")))
+        p1 = p1 + facet_wrap(facets = facetForm)
+      }
+      # optional time-variable animation with path.
+      if(!is.null(get_timevar_ord()) & !is.null(av(input$timeslider_ord))){
+        # Subset to just the data up to the current time variable
+        p1$data <- p1$data[as.numeric(p1$data[[input$timevar_ord]]) <= input$timeslider_ord, ]
+        p1 = p1 + geom_path()
+        # Update range to keep full range at every time point.
+        p1 = p1 + xlim(xlim0)
+        p1 = p1 + ylim(ylim0)
+      }
+      # Updates legend labels.
+      p1 = update_labels(p1, list(colour=input$color_ord))
+      p1 = update_labels(p1, list(shape=input$shape_ord))
     }
-    # Updates legend labels.
-    p1 = update_labels(p1, list(colour=input$color_ord))
-    p1 = update_labels(p1, list(shape=input$shape_ord))
     shiny_phyloseq_print(p1)
   }, width=800, height=650)
 })

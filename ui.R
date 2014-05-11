@@ -54,15 +54,20 @@ sbp_net = sidebarPanel(
 ################################################################################
 # sbp of plot_ordination 
 ################################################################################
-sbp_ord = sidebarPanel(uitype("type_ord", "samples"),
-                       uiOutput("ord_uix_subsetvar"),
-                       uiOutput("ord_uix_selectelem"),
-                       uidist("dist_ord"),
-                       uiOutput("ord_uix_color"),
-                       uiOutput("ord_uix_shape"),
-                       selectInput("ord_method", "Ordination Method:", ordlist, selected="DCA"),
-                       textInput("formula", "Ordination Constraint Formula", value="NULL"),
-                       uiptsz("size_ord"), uialpha("alpha_ord")
+sbp_ord = sidebarPanel(
+  h4("Press Play"),
+  uiOutput("ord_uix_timeslider"),
+  uiOutput("ord_uix_timevar"),
+  p("See animation-parameters.R to change default settings."),
+  uiOutput("ord_uix_subsetvar"),
+  uiOutput("ord_uix_selectelem"),
+  uiOutput("ord_uix_color"),
+  uiOutput("ord_uix_shape"),
+  uidist("dist_ord"),
+  selectInput("ord_method", "Ordination Method:", ordlist),
+  textInput("formula", "Ordination Constraint Formula", value="NULL"),
+  uiptsz("size_ord"), uialpha("alpha_ord"),
+  uitype("type_ord", "samples")
 )
 ################################################################################
 # Define each fluid page

@@ -6,3 +6,11 @@ step = netdist/15
 interval=800
 # Whether or not to loop the value range, or stop after one pass
 loop=TRUE
+
+################################################################################
+# Ordination Parameters
+################################################################################
+# Default Selections (have no impact if not in choices list)
+ordinationTimeVariableDefault = "timeOrderMouse"
+ordinationColorVariableDefault = "mouse.number"
+ordinationShapeVariableDefault = "infected"

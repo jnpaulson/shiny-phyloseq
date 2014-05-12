@@ -580,10 +580,24 @@ shinyServer(function(input, output){
       if(!is.null(get_timevar_ord()) & !is.null(av(input$timeslider_ord))){
         # Subset to just the data up to the current time variable
         p1$data <- p1$data[as.numeric(p1$data[[input$timevar_ord]]) <= input$timeslider_ord, ]
-        p1 = p1 + geom_path()
+        if(!is.null(c(av(input$color_ord), av(input$shape_ord)))){
+          currentDF = plyr::ddply(p1$data, .variables=c(av(input$color_ord), av(input$shape_ord)), function(x){
+            x[which.max(as.numeric(x[[input$timevar_ord]])), , drop=FALSE]
+          })
+          p1 = p1 + geom_path()
+          p1 = p1 + geom_point(data=currentDF, 
+                               color="black",
+                               shape="+",
+                               size=0.9*av(input$size_ord))
+        }
+        # Add a marker to indicate the "current" point(s)
+        p1$data[as.numeric(p1$data[[input$timevar_ord]]) <= input$timeslider_ord, ]
         # Update range to keep full range at every time point.
         p1 = p1 + xlim(xlim0)
         p1 = p1 + ylim(ylim0)
+        # Display current time in title
+        title_ord = paste0(input$timevar_ord, ": ", round(as.numeric(input$timeslider_ord), 2))
+        p1 = p1 + ggtitle(title_ord)
       }
       # Updates legend labels.
       p1 = update_labels(p1, list(colour=input$color_ord))

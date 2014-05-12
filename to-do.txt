@@ -1,3 +1,5 @@
+* Add "current point" marker to relevant animations
+
 * Differences between networks
 
 * Computing the coompromise network 

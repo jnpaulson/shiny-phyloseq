@@ -292,9 +292,9 @@ shinyServer(function(input, output){
   ################################################################################
   output$network_uix_color <- renderUI({
     if(input$type_net=="samples"){
-      return(uivar("color_net", "Color Variable:", sampvarlist()))
+      return(uivar("color_net", "Color Variable:", sampvarlist(), netThreshColorVariableDefault))
     } else if(input$type_net=="taxa"){
-      return(uivar("color_net", "Color Variable:", specvarlist()))
+      return(uivar("color_net", "Color Variable:", specvarlist(), netThreshColorVariableDefault))
     } else {
       # Some kind of fail, throw all variables up.
       return(uivar("color_net", "Color Variable:", vars()))
@@ -302,9 +302,9 @@ shinyServer(function(input, output){
   })
   output$network_uix_shape <- renderUI({
     if(input$type_net=="samples"){
-      return(uivar("shape_net", "Shape Variable:", sampvarlist()))
+      return(uivar("shape_net", "Shape Variable:", sampvarlist(), netThreshShapeVariableDefault))
     } else if(input$type_net=="taxa"){
-      return(uivar("shape_net", "Shape Variable:", specvarlist()))
+      return(uivar("shape_net", "Shape Variable:", specvarlist(), netThreshShapeVariableDefault))
     } else {
       # Some kind of fail, throw all variables up.
       return(uivar("shape_net", "Shape Variable:", vars()))
@@ -317,7 +317,7 @@ shinyServer(function(input, output){
     if(input$type_ord=="samples"){
       return(uivar("color_ord", "Color Variable:", sampvarlist(), ordinationColorVariableDefault))
     } else if(input$type_ord=="taxa"){
-      return(uivar("color_ord", "Color Variable:", specvarlist()))
+      return(uivar("color_ord", "Color Variable:", specvarlist(), ordinationColorVariableDefault))
     } else {
       # Some kind of fail, throw all variables up.
       return(uivar("color_ord", "Color Variable:", vars()))
@@ -327,7 +327,7 @@ shinyServer(function(input, output){
     if(input$type_ord=="samples"){
       return(uivar("shape_ord", "Shape Variable:", sampvarlist(), ordinationShapeVariableDefault))
     } else if(input$type_ord=="taxa"){
-      return(uivar("shape_ord", "Shape Variable:", specvarlist()))
+      return(uivar("shape_ord", "Shape Variable:", specvarlist(), ordinationShapeVariableDefault))
     } else {
       # Some kind of fail, throw all variables up.
       return(uivar("shape_ord", "Shape Variable:", vars()))
@@ -338,7 +338,7 @@ shinyServer(function(input, output){
     if(input$type_ord=="samples"){
       return(uivar("timevar_ord", "Time Variable:", sampvarlist(), ordinationTimeVariableDefault))
     } else if(input$type_ord=="taxa"){
-      return(uivar("timevar_ord", "Time Variable:", specvarlist()))
+      return(uivar("timevar_ord", "Time Variable:", specvarlist(), ordinationTimeVariableDefault))
     } else {
       # Some kind of fail... dummy ui
       return(selectInput("timevar_ord", "Time Variable", choices = "NULL"))

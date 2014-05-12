@@ -13,7 +13,7 @@ uiptsz = function(id="size"){
 uialpha = function(id="alpha"){
   sliderInput(inputId=id, label="Opacity:", min=0, max=1, value=1, step=0.1)
 }
-#   Function to reate ui for distance method selection
+#   Function to create ui for distance method selection
 #   NOTE: not all distance methods are supported if "taxa" selected for type. 
 #   For example, the UniFrac distance and DPCoA cannot be calculated for taxa-wise 
 #   distances, because they use a taxa-wise tree as part of their calculation 
@@ -42,11 +42,11 @@ sbp_net = sidebarPanel(
               animate=animationOptions(interval=interval, loop=loop),
               min=0.0,
               max=netdist,
-              value=0.5*netdist,
+              value=0.0,
               step=step),
   p("See animation-parameters.R to change default settings."),
   uitype("type_net", "samples"),
-  uidist("dist_net"),
+  uidist("dist_net", selected=netThreshDistanceMethod),
   uiOutput("network_uix_color"),
   uiOutput("network_uix_shape"),
   uiptsz("size_net"), uialpha("alpha_net")

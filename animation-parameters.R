@@ -6,6 +6,15 @@ interval=1000
 # Whether or not to loop the value range, or stop after one pass
 loop=TRUE
 ################################################################################
+# Filter Default Parameters
+################################################################################
+# sample_sums_threshold
+# input$filter_sample_sums_threshold
+SampleSumDefault = 1000
+# taxa_sums threshold 
+# input$filter_taxa_sums_threshold
+OTUSumDefault = 250
+################################################################################
 # Network Threshold Animation Default Parameters
 ################################################################################
 # The maximum distance with which the network structure is based. 

@@ -70,6 +70,21 @@ sbp_ord = sidebarPanel(
   uitype("type_ord", "samples")
 )
 ################################################################################
+# sbp for d3 network
+################################################################################
+sbp_d3 = sidebarPanel(
+  h4("Enjoy, Susan!"),
+  uidist("dist_d3", d3DefaultDistance),
+  numericInput("dist_d3_threshold", "Edge Distance Threshold",
+               LinkDistThreshold,
+               min = 0, max = 1, step = 0.025),
+  uiOutput("d3_uix_node_label"),
+  uiOutput("d3_uix_color"),
+  uialpha("d3_opacity"),
+  uitype("type_d3", "taxa"),
+  p("See animation-parameters.R to change default settings.")
+)
+################################################################################
 # Define each fluid page
 ################################################################################
 # Define in a single function, a standard definition
@@ -86,6 +101,18 @@ make_fluidpage = function(fptitle="", sbp, outplotid){
 }
 netpage = make_fluidpage("", sbp_net, "network")
 ordpage = make_fluidpage("", sbp_ord, "ordination")
+# d3network page
+d3netpage = fluidPage(
+  # Load d3.js
+  tags$head(tags$script(src = 'http://d3js.org/d3.v3.min.js')),
+  titlePanel(""),
+  sidebarLayout(
+    sidebarPanel=sbp_d3,
+    mainPanel=mainPanel(
+      htmlOutput("d3networkJava")
+    )
+  )
+)
 # Data I/O page
 datapage = fluidPage(
   titlePanel(""),
@@ -158,9 +185,14 @@ filterpage = fluidPage(
 # Define the full user-interface, `ui`
 ################################################################################
 ui = navbarPage("Shiny + phyloseq",
+                # Load d3.js
+                tags$head(
+                  tags$script(src = 'http://d3js.org/d3.v3.min.js')
+                ),
                 tabPanel("Select Dataset", datapage),
                 tabPanel("Filter", filterpage),
                 tabPanel("Network", netpage),
-                tabPanel("Ordination", ordpage)
+                tabPanel("Ordination", ordpage),
+                tabPanel("d3Network", d3netpage)
 )
 shinyUI(ui)

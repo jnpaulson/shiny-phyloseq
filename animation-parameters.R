@@ -31,3 +31,11 @@ netThreshDistanceMethod = "jaccard"
 ordinationTimeVariableDefault = "timeOrderMouse"
 ordinationColorVariableDefault = "mouse.number"
 ordinationShapeVariableDefault = "infected"
+################################################################################
+# d3 default Default Parameters
+################################################################################
+LinkDistThreshold = 0.6
+d3DefaultDistance = "jaccard"
+d3NetworkColorVar = "Phyllum"
+d3ShowRanks = c("Phyllum", "Genus", "Species")
+################################################################################

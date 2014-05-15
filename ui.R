@@ -18,13 +18,14 @@ sbp_d3 = sidebarPanel(
               label="Calculation: Samples or Taxa?",
               selected="taxa",
               choices=list("Taxa"="taxa", "Samples"="samples")),
+  numericInput("d3_link_scale", "Link Size Scaling Factor", value = 3, min = 1, step = 2),
   numericInput(inputId = "width_d3",
                label = "Graphic Width [Pixels]",
-               value = 400,
+               value = 700,
                min = 200, max = 1600, step = 100),
   numericInput(inputId = "height_d3",
                label = "Graphic Height [Pixels]",
-               value = 400,
+               value = 600,
                min = 200, max = 1600, step = 100), 
   p("See animation-parameters.R to change default settings.")
 )

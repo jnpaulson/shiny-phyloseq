@@ -22,27 +22,11 @@ SampleSumDefault = 1000
 # input$filter_taxa_sums_threshold
 OTUSumDefault = 250
 ################################################################################
-# Network Threshold Animation Default Parameters
-################################################################################
-# The maximum distance with which the network structure is based. 
-netdist = 0.20
-# The distance step size to use in the animation.
-step = netdist/15
-netThreshColorVariableDefault = "mouse.number"
-netThreshShapeVariableDefault = "infected"
-netThreshDistanceMethod = "jaccard"
-################################################################################
-# Ordination Default Parameters
-################################################################################
-# Default Selections (have no impact if not in choices list)
-ordinationTimeVariableDefault = "timeOrderMouse"
-ordinationColorVariableDefault = "mouse.number"
-ordinationShapeVariableDefault = "infected"
-################################################################################
 # d3 default Default Parameters
 ################################################################################
-LinkDistThreshold = 0.6
-d3DefaultDistance = "jaccard"
+LinkDistThreshold = 0.4
+d3DefaultDistance = "bray"
 d3NetworkColorVar = "Phyllum"
-d3ShowRanks = c("Phyllum", "Genus", "Species")
+d3NodeLabelVar = c("Phyllum", "Order", "Class", "Family", "OTU")
+
 ################################################################################

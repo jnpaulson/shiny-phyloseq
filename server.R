@@ -59,18 +59,22 @@ shinyServer(function(input, output){
     if(input$type_d3=="samples"){
       return(uivar("color_d3", "Color Variable:", sampvarlist(), d3NetworkColorVar))
     } else if(input$type_d3=="taxa"){
-      return(uivar("color_d3", "Color Variable:", specvarlist(), d3NetworkColorVar))
+      return(uivar("color_d3", "Color Variable:", 
+                   c(rankNames(), list(OTU="OTU")), 
+                   d3NetworkColorVar))
     } else {
       # Some kind of fail, throw all variables up.
       return(uivar("color_d3", "Color Variable:", vars(), d3NetworkColorVar))
     }
   })
   output$d3_uix_node_label <- renderUI({
-    # "d3ShowRanks"
     if(input$type_d3=="samples"){
       return(uivar("d3_node_label", "Node Label:", sampvarlist(), d3NetworkColorVar))
     } else if(input$type_d3=="taxa"){
-      return(uivar("d3_node_label", "Node Label:", specvarlist(), d3NetworkColorVar))
+      return(selectInput("d3_node_label", "Color Variable:",
+                         choices = c(rankNames(), list(OTU="OTU")), 
+                         multiple = TRUE,
+                         selected = d3NodeLabelVar))
     } else {
       # Some kind of fail, throw all variables up.
       return(uivar("d3_node_label", "Node Label:", vars(), d3NetworkColorVar))
@@ -137,6 +141,8 @@ shinyServer(function(input, output){
     # Remove entries above the threshold
     # (This will also remove self-links and duplicate links)
     LinksData <- LinksData[value < input$dist_d3_threshold, ]
+    # Rescale remaining links
+    LinksData[, value:=(0.1+input$d3_link_scale*(value-min(value))/max(value))]
     # Don't sort yet, instead create mapping variable from OTU ID to link node ID
     # d3link nodes are numbered from 0.
     nodeUnion = union(LinksData$OTU, LinksData$OTU_target)
@@ -149,7 +155,7 @@ shinyServer(function(input, output){
     setkey(LinksData, OTU)
     # Create covariates table (taxa in this case)
     NodeData = data.frame(OTU=nodeUnion, tax_table(physeq())[nodeUnion, ], stringsAsFactors = FALSE)
-    #NodeData$FullRank <- apply(NodeData[, d3ShowRanks], 1, paste0, collapse=" ")
+    NodeData$ShowRanks <- apply(NodeData[, input$d3_node_label, drop=FALSE], 1, paste0, collapse=" ")
     return(list(link=data.frame(LinksData), node=NodeData))
   })
   default_OTU = function(x){
@@ -166,7 +172,7 @@ shinyServer(function(input, output){
       Nodes = calculate_links_data()$node,
       Source = "OTU", Target = "OTU_target",
       Value = "value",
-      NodeID = default_OTU(input$d3_node_label),
+      NodeID = "ShowRanks",
       Group = default_OTU(input$color_d3),
       opacity = input$d3_opacity,
       zoom = FALSE,

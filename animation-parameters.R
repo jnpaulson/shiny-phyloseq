@@ -1,6 +1,13 @@
 ################################################################################
 # Animation Parameters
 ################################################################################
+# The main data:
+# The mouse study data:
+load("data/phytcf.RData")
+# One-Off fix infected variable
+sample_data(phytcf)$mouse.type <- factor(get_variable(phytcf, "mouse.type"))
+sample_data(phytcf)$infected <- as.logical(get_variable(phytcf, "infected"))
+sample_data(phytcf)$mouse.number <- factor(get_variable(phytcf, "mouse.number"))
 # The frame delay interval in milliseconds
 interval=1000
 # Whether or not to loop the value range, or stop after one pass

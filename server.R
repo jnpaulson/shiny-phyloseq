@@ -57,7 +57,7 @@ shinyServer(function(input, output){
   ################################################################################
   output$d3_uix_color <- renderUI({
     if(input$type_d3=="samples"){
-      return(uivar("color_d3", "Color Variable:", choices = c("Sample", variNames()), d3NetworkColorVar))
+      return(uivar("color_d3", "Color Variable:", choices = c("Sample", variNames()), "mouse.number"))
     } else if(input$type_d3=="taxa"){
       return(uivar("color_d3", "Color Variable:", 
                    c(rankNames(), list(OTU="OTU")), 
@@ -71,10 +71,10 @@ shinyServer(function(input, output){
     if(input$type_d3=="samples"){
       return(selectInput("d3_node_label", "Node Label (hover):", 
                          choices = c("Sample", variNames()),
-                         selected = d3NetworkColorVar, 
+                         selected = c("Sample", "infected"), 
                          multiple = TRUE))
     } else if(input$type_d3=="taxa"){
-      return(selectInput("d3_node_label", "Node Label:",
+      return(selectInput("d3_node_label", "Node Label (hover):",
                          choices = c(rankNames(), list(OTU="OTU")), 
                          multiple = TRUE,
                          selected = d3NodeLabelVar))
@@ -155,8 +155,9 @@ shinyServer(function(input, output){
       Value = "value",
       NodeID = "ShowLabels",
       Group = default_Source(input$color_d3),
+      linkColour = input$d3_link_color,
       opacity = input$d3_opacity,
-      zoom = FALSE,
+      zoom = TRUE, #zoom = as.logical(input$d3_zoom),
       standAlone = FALSE, 
       width = input$width_d3, height = input$height_d3,
       parentElement = "#networkPlot")

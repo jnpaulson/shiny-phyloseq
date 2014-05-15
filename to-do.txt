@@ -6,3 +6,4 @@
 * The Jaccard comparison of networks
 
 * UIX with a network plot to fix it (e.g. expand hairballs, etc..)
+	- d3 does this pretty well. Maybe not all features wanted...

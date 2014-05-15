@@ -49,7 +49,7 @@ ui = fluidPage(
     tags$script(src = 'http://d3js.org/d3.v3.min.js')
   ),
   # Application title
-  titlePanel('d3Network Shiny Example'),
+  titlePanel('Mice Networks using phyloseq, Shiny, and d3'),
   # Sidebar with a slider input for node opacity
   sbp_d3,
   # Show network graph

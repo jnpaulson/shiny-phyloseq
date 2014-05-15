@@ -57,7 +57,7 @@ shinyServer(function(input, output){
   ################################################################################
   output$d3_uix_color <- renderUI({
     if(input$type_d3=="samples"){
-      return(uivar("color_d3", "Color Variable:", sampvarlist(), d3NetworkColorVar))
+      return(uivar("color_d3", "Color Variable:", choices = c("Sample", variNames()), d3NetworkColorVar))
     } else if(input$type_d3=="taxa"){
       return(uivar("color_d3", "Color Variable:", 
                    c(rankNames(), list(OTU="OTU")), 
@@ -69,9 +69,12 @@ shinyServer(function(input, output){
   })
   output$d3_uix_node_label <- renderUI({
     if(input$type_d3=="samples"){
-      return(uivar("d3_node_label", "Node Label:", sampvarlist(), d3NetworkColorVar))
+      return(selectInput("d3_node_label", "Node Label (hover):", 
+                         choices = c("Sample", variNames()),
+                         selected = d3NetworkColorVar, 
+                         multiple = TRUE))
     } else if(input$type_d3=="taxa"){
-      return(selectInput("d3_node_label", "Color Variable:",
+      return(selectInput("d3_node_label", "Node Label:",
                          choices = c(rankNames(), list(OTU="OTU")), 
                          multiple = TRUE,
                          selected = d3NodeLabelVar))
@@ -83,36 +86,6 @@ shinyServer(function(input, output){
   ################################################################################
   # Plot Rendering Stuff.
   ################################################################################
-  # Define a proportions-only version of input phyloseq object
-  physeqProp = reactive({transform_sample_counts(physeq(), function(x){x / sum(x)})})
-  # Define a dummy "failed plot" to return if render section cannot build valid plot.
-  fail_gen = function(main="Graphic Fail.", 
-                      subtext="Please change parameters and try again."){
-    qplot(x=0, y=0, main=main) + 
-      annotate("text", 0, 0, label=":-(",
-               size=75, angle=270, hjust=0.5, vjust=0.35) +
-      annotate("text", 0, 0, label=subtext, size=10, hjust=0.5, vjust=-7) +
-      theme_bw() + 
-      theme(panel.border=element_blank(), axis.line=element_blank(),
-            axis.text=element_blank(), axis.ticks=element_blank())
-  }
-  failp = fail_gen()
-  # Define a default controlled ggplot printing check for all print rendering
-  shiny_phyloseq_print = function(p, f=failp){
-    if(inherits(p, "ggplot")){
-      # Check that rendering will work
-      printout = NULL
-      try(printout <- print(p), silent=TRUE)
-      if(is.null(printout)){
-        # If still NULL, the print-render failed,
-        # otherwise print() would have returned a 'list'
-        # Nothing was printed. Print the fail graphic in its place.
-        print(f)
-      }
-    } else {
-      print(f)
-    }
-  }    
   # Define generic function to access/clean variables
   # This especially converts "NULL" to NULL
   av = function(x){
@@ -120,6 +93,17 @@ shinyServer(function(input, output){
       return(NULL)
     }
     return(x)
+  }
+  default_Source = function(x){
+    if(is.null(av(x))){
+      if(input$type_d3=="taxa"){
+        return("OTU")
+      } else {
+        return("Sample")
+      }
+    } else {
+      return(x)
+    }
   }
   ################################################################################
   # Generate a d3 network graphic 
@@ -130,50 +114,47 @@ shinyServer(function(input, output){
     try({idist <- distance(physeq(), method=input$dist_d3, type=input$type_d3)}, silent=TRUE)
     if(is.null(idist)){warning("gdist: Could not calculate distance matrix with these settings.")}
     return(idist)
-  })
+  })  
   calculate_links_data = reactive({
     d3dist <- as.matrix(gdist())
     # Set duplicate entries and self-links to Inf
     d3dist[upper.tri(d3dist, diag = TRUE)] <- Inf
     # Create data.table.
-    d3LinkNames = c("OTU", "OTU_target")
+    d3LinkNames = c("Source", "target")
     LinksData = data.table(reshape2::melt(d3dist, varnames=d3LinkNames, as.is = TRUE))
     # Remove entries above the threshold
     # (This will also remove self-links and duplicate links)
     LinksData <- LinksData[value < input$dist_d3_threshold, ]
     # Rescale remaining links
     LinksData[, value:=(0.1+input$d3_link_scale*(value-min(value))/max(value))]
-    # Don't sort yet, instead create mapping variable from OTU ID to link node ID
+    # Don't sort yet, instead create mapping variable from Source ID to link node ID
     # d3link nodes are numbered from 0.
-    nodeUnion = union(LinksData$OTU, LinksData$OTU_target)
+    nodeUnion = union(LinksData$Source, LinksData$target)
     d3lookup = (0:(length(nodeUnion)-1))
     names(d3lookup) <- nodeUnion
     # In-place replacement.
-    LinksData[, OTU:=d3lookup[OTU]]
-    LinksData[, OTU_target:=d3lookup[OTU_target]]
-    # Order by the `d3lookup` node ID, in this case, the OTU label
-    setkey(LinksData, OTU)
+    LinksData[, Source:=d3lookup[Source]]
+    LinksData[, target:=d3lookup[target]]
+    # Order by the `d3lookup` node ID, in this case, the Source label
+    setkey(LinksData, Source)
     # Create covariates table (taxa in this case)
-    NodeData = data.frame(OTU=nodeUnion, tax_table(physeq())[nodeUnion, ], stringsAsFactors = FALSE)
-    NodeData$ShowRanks <- apply(NodeData[, input$d3_node_label, drop=FALSE], 1, paste0, collapse=" ")
+    if(input$type_d3 == "taxa"){
+      NodeData = data.frame(OTU=nodeUnion, tax_table(physeq())[nodeUnion, ], stringsAsFactors = FALSE)
+    } else {
+      NodeData = data.frame(Sample=nodeUnion, sample_data(physeq())[nodeUnion, ], stringsAsFactors = FALSE)      
+    }
+    NodeData$ShowLabels <- apply(NodeData[, input$d3_node_label, drop=FALSE], 1, paste0, collapse="; ")
     return(list(link=data.frame(LinksData), node=NodeData))
   })
-  default_OTU = function(x){
-    if(is.null(av(x))){
-      return("OTU")
-    } else {
-      return(x)
-    }
-  }
   # The d3Network output definition.
   output$networkPlot <- renderPrint({
     d3Network::d3ForceNetwork(
       Links = calculate_links_data()$link, 
       Nodes = calculate_links_data()$node,
-      Source = "OTU", Target = "OTU_target",
+      Source = "Source", Target = "target",
       Value = "value",
-      NodeID = "ShowRanks",
-      Group = default_OTU(input$color_d3),
+      NodeID = "ShowLabels",
+      Group = default_Source(input$color_d3),
       opacity = input$d3_opacity,
       zoom = FALSE,
       standAlone = FALSE, 

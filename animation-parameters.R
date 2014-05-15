@@ -25,8 +25,9 @@ OTUSumDefault = 250
 # d3 default Default Parameters
 ################################################################################
 LinkDistThreshold = 0.4
+d3DefaultLinkScaleFactor = 10
 d3DefaultDistance = "bray"
-d3NetworkColorVar = "Phyllum"
+d3NetworkColorVar = "Family"
 d3NodeLabelVar = c("Phyllum", "Order", "Class", "Family", "OTU")
 
 ################################################################################

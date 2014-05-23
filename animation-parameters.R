@@ -34,8 +34,9 @@ ordinationShapeVariableDefault = "infected"
 ################################################################################
 # d3 default Default Parameters
 ################################################################################
-LinkDistThreshold = 0.6
-d3DefaultDistance = "jaccard"
-d3NetworkColorVar = "Phyllum"
-d3ShowRanks = c("Phyllum", "Genus", "Species")
+LinkDistThreshold = 0.4
+d3DefaultLinkScaleFactor = 40
+d3DefaultDistance = "bray"
+d3NetworkColorVar = "Family"
+d3NodeLabelVar = c("Phyllum", "Order", "Class", "Family", "OTU")
 ################################################################################
